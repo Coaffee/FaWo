@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comentarios - Faraway Worlds</title>
+
+  <!-- Cargar Firebase desde la nube -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #0d0d13, #1a1a2e);
+      color: #ffffff;
+      font-family: sans-serif;
+      padding: 20px;
+      margin: 0;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .back-btn {
+      color: #bb86fc;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .card {
+      background: #161622;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    input, textarea {
+      width: 100%;
+      background: #0d0d13;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 10px;
+      box-sizing: border-box;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    textarea {
+      height: 80px;
+      resize: none;
+    }
+
+    button {
+      background: #bb86fc;
+      color: #000;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: bold;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    .small-btn {
+      background: transparent;
+      color: #bb86fc;
+      text-decoration: underline;
+      font-size: 12px;
+      margin-top: 8px;
+      display: block;
+      text-align: center;
+    }
+
+    .sticker {
+      width: 50px;
+      height: 50px;
+      vertical-align: middle;
+      display: inline-block;
+      margin: 2px;
+    }
+
+    .comment-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .comment {
+      background: #181824;
+      border: 1px solid #2a2a3d;
+      padding: 12px 15px;
+      border-radius: 10px;
+      line-height: 1.5;
+      word-wrap: break-word;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .comment-author {
+      font-size: 12px;
+      color: #bb86fc;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .delete-btn {
+      background: transparent;
+      border: none;
+      color: #ff5555;
+      font-size: 16px;
+      cursor: pointer;
+      width: auto;
+      padding: 0;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h2>Faraway Worlds</h2>
+    <a href="index.html" class="back-btn">← Volver</a>
+  </div>
+
+  <!-- SECCIÓN 1: INICIO DE SESIÓN / REGISTRO -->
+  <div id="authBox" class="card">
+    <h3 id="authTitle">Iniciar Sesión</h3>
+    <input type="email" id="email" placeholder="Correo electrónico">
+    <input type="password" id="password" placeholder="Contraseña">
+    
+    <button id="authBtn" onclick="autenticar()">Entrar</button>
+    
+    <!-- Botón de Google -->
+    <button onclick="loginConGoogle()" style="background: #ffffff; color: #000; margin-top: 10px;">
+      Entrar con Google
+    </button>
+
+    <!-- Opciones secundarias -->
+    <button class="small-btn" onclick="toggleAuthMode()">¿No tienes cuenta? Regístrate aquí</button>
+    <button class="small-btn" onclick="recuperarPassword()">¿Olvidaste tu contraseña?</button>
+  </div>
+
+  <!-- SECCIÓN 2: CAJA DE COMENTARIOS -->
+  <div id="commentBox" class="card hidden">
+    <p>Conectado como: <b id="userEmail"></b> (<a href="#" onclick="cerrarSesion()" style="color:#ff5555;">Salir</a>)</p>
+    <textarea id="commentInput" placeholder="Escribir un comentario..."></textarea>
+    <button onclick="publicarComentario()">Publicar Comentario</button>
+  </div>
+
+  <!-- CONTENEDOR DE COMENTARIOS -->
+  <h3>Comentarios</h3>
+  <div class="comment-list" id="box">Cargando comentarios...</div>
+
+  <!-- CÓDIGO JAVASCRIPT (¡Solo lógica aquí!) -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCn78Mz3krZQvjg7hPZEqdY57KHGIX8lBY",
+      authDomain: "faraway-worlds-3abb5.firebaseapp.com",
+      projectId: "faraway-worlds-3abb5",
+      storageBucket: "faraway-worlds-3abb5.firebasestorage.app",
+      messagingSenderId: "1081249976046",
+      appId: "1:1081249976046:web:8bafa2588d9bb70f37edff"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let isRegisterMode = false;
+
+    // Login con Google
+    function loginConGoogle() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithRedirect(provider).catch(err => {
+        alert("Error al entrar con Google: " + err.message);
+      });
+    }
+
+    // Recuperar contraseña
+    function recuperarPassword() {
+      const email = document.getElementById('email').value;
+      if (!email) return alert("Escribe tu correo en la casilla para enviarte el enlace");
+
+      auth.sendPasswordResetEmail(email)
+        .then(() => alert("¡Listo! Te enviamos un correo para restablecer tu contraseña."))
+        .catch(err => alert("Error: " + err.message));
+    }
+
+    // Alternar formulario
+    function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      document.getElementById('authTitle').innerText = isRegisterMode ? "Crear Cuenta" : "Iniciar Sesión";
+      document.getElementById('authBtn').innerText = isRegisterMode ? "Registrarme" : "Entrar";
+    }
+
+    // Autenticar
+    function autenticar() {
+      const email = document.getElementById('email').value;
+      const pass = document.getElementById('password').value;
+
+      if (!email || !pass) return alert("Llena los campos primero");
+
+      if (isRegisterMode) {
+        auth.createUserWithEmailAndPassword(email, pass)
+          .catch(err => alert("Error al registrar: " + err.message));
+      } else {
+        auth.signInWithEmailAndPassword(email, pass)
+          .catch(err => alert("Error al entrar: " + err.message));
+      }
+    }
+
+    function cerrarSesion() {
+      auth.signOut();
+    }
+
+    // Detectar estado de usuario
+    auth.onAuthStateChanged(user => {
+      const authBox = document.getElementById('authBox');
+      const commentBox = document.getElementById('commentBox');
+
+      if (user) {
+        authBox.classList.add('hidden');
+        commentBox.classList.remove('hidden');
+        document.getElementById('userEmail').innerText = user.email;
+      } else {
+        authBox.classList.remove('hidden');
+        commentBox.classList.add('hidden');
+      }
+    });
+
+    // Publicar comentario
+    function publicarComentario() {
+      const input = document.getElementById('commentInput');
+      const txt = input.value.trim();
+      const user = auth.currentUser;
+
+      if (!txt || !user) return;
+
+      db.collection('comentarios').add({
+        texto: txt,
+        autor: user.email,
+        fecha: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        input.value = '';
+      }).catch(err => alert("Error al publicar: " + err.message));
+    }
+
+    // Borrar comentario
+    function borrarComentario(id) {
+      db.collection('comentarios').doc(id).delete();
+    }
+
+    // Escuchar cambios en tiempo real
+    db.collection('comentarios')
+      .orderBy('fecha', 'desc')
+      .onSnapshot(snapshot => {
+        const container = document.getElementById('box');
+        container.innerHTML = '';
+
+        if (snapshot.empty) {
+          container.innerHTML = '<p>Aún no hay comentarios.</p>';
+          return;
+        }
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const div = document.createElement('div');
+          div.className = 'comment';
+
+          div.innerHTML = `
+            <div>
+              <div class="comment-author">${data.autor || 'Anónimo'}</div>
+              <div>${data.texto}</div>
+            </div>
+            <button class="delete-btn" onclick="borrarComentario('${doc.id}')">🗑️</button>
+          `;
+
+          container.appendChild(div);
+        });
+      });
+  </script>
+
+</body>
+</html>

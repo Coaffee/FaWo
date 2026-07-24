@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel pa' escribir</title>
+  <style>
+    body {font-family: Arial, sans-serif;
+      background-color: #2b2638;
+      color: #ffffff;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;}
+    h1 { text-align: center; color: #e0b0ff; }
+    label { font-size: 14px; color: #c4b4d4; margin-bottom: 5px; display: block; }
+    select, input, textarea {width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      border: 1px solid #5a4b75;
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      font-size: 16px;
+      box-sizing: border-box;}
+    option { background-color: #2b2638; color: #fff; }
+    textarea { height: 300px; resize: vertical; }
+    .btn-group { display: flex; gap: 10px; }
+    button {flex: 1;
+      padding: 15px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;}
+    .btn-guardar { background: #8a2be2; color: white; }
+    .btn-eliminar { background: #d93838; color: white; }
+    .sticker {height: 1.5em;
+      width: auto;
+    vertical-align: middle;
+    display: inline-block;
+    margin: 0 2px;}
+  .barra-stickers {margin-bottom: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;}
+.barra-stickers label {width: 100%;
+  font-size: 13px;
+  color: #c4b4d4;
+  margin-bottom: 4px;}
+.barra-stickers button {background: #3f3652;
+  color: #ffffff;
+  border: 1px solid #5a4b75;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;}
+.barra-stickers button:active {background: #8a2be2;}
+  </style>
+</head>
+<body>
+  <h1>Panel pa' crear libros</h1>
+  <label for="selector">Cargar o crear capítulos:</label>
+  <select id="selector" onchange="cargarParaEditar()">
+    <option value="-1">Crear Nuevo Cap XD</option>
+  </select>
+  <input type="text" id="titulo" placeholder="pon aqui el nombre de tu capitulo">
+<div class="barra-stickers">
+  <label>Toca para insertar sticker:</label>
+  <button type="button" onclick="insertarSticker('sticker1.png')"><img src="sticker1.png" class="sticker"></button>
+  <button type="button" onclick="insertarSticker('sticker2.png')"><img src="sticker2.png" class="sticker"></button>
+  <button type="button" onclick="insertarSticker('sticker3.png')"><img src="sticker3.png" class="sticker"></button>
+  <button type="button" onclick="insertarSticker('sticker4.png')"><img src="sticker4.png" class="sticker"></button>
+  <button type="button" onclick="insertarSticker('sticker5.png')"><img src="sticker5.png" class="sticker"></button>
+  <button type="button" onclick="insertarSticker('sticker6.png')"><img src="sticker6.png" class="sticker"></button>
+  <button type="button" onclick="insertarSticker('sticker7.png')"><img src="sticker7.png" class="sticker"></button>
+</div>
+<textarea id="contenido" placeholder="Escribe aquí tu historia"></textarea>
+  <div class="btn-group">
+    <button class="btn-guardar" onclick="guardarCapitulo()">Guardar / Publicar :D</button>
+    <button class="btn-eliminar" onclick="eliminarCapitulo()">Eliminar :(</button>
+  </div>
+  <script>
+  function insertarSticker(nombreImagen) {let textarea = document.getElementById("contenido");
+    let codigoSticker = `<img src="${nombreImagen}" class="sticker">`;
+    let inicio = textarea.selectionStart;
+    let fin = textarea.selectionEnd;
+  textarea.value = textarea.value.substring(0, inicio) + codigoSticker + textarea.value.substring(fin);
+  textarea.focus();
+  textarea.selectionStart = textarea.selectionEnd = inicio + codigoSticker.length;}
+    let capitulos = JSON.parse(localStorage.getItem("mis_capitulos")) || [];
+    function actualizarSelector() {let selector = document.getElementById("selector");
+      selector.innerHTML = '<option value="-1">Crear Nuevo Cap XD</option>';
+      capitulos.forEach((cap, index) => {let opt = document.createElement("option");
+        opt.value = index;
+        opt.innerText = cap.titulo;
+        selector.appendChild(opt); }); }
+    function cargarParaEditar() {let index = document.getElementById("selector").value;
+      if (index == "-1") {document.getElementById("titulo").value = "";
+        document.getElementById("contenido").value = "";} 
+      else {document.getElementById("titulo").value = capitulos[index].titulo;
+        document.getElementById("contenido").value = capitulos[index].texto;}}
+    function guardarCapitulo() {let titulo = document.getElementById("titulo").value;
+      let texto = document.getElementById("contenido").value;
+      let index = document.getElementById("selector").value;
+      if (!titulo || !texto) {alert("Escribe un título y contenido antes de guardar.");
+        return;}
+      if (index == "-1") {capitulos.push({ titulo: titulo, texto: texto });} 
+      else {capitulos[index] = { titulo: titulo, texto: texto };}
+      localStorage.setItem("mis_capitulos", JSON.stringify(capitulos));
+      alert("¡Capítulo guardado con éxito! yay 🎉");
+      actualizarSelector();
+      document.getElementById("selector").value = "-1";
+      cargarParaEditar();}
+    function eliminarCapitulo() {let index = document.getElementById("selector").value;
+      if (index == "-1") {alert("Selecciona un capítulo existente para eliminar.");
+        return;}
+      if (confirm("¿Segura, SEGURISIMA de que quieres borrar este capítulo?")) {
+        capitulos.splice(index, 1);
+        localStorage.setItem("mis_capitulos", JSON.stringify(capitulos));
+        alert("Capítulo eliminado.");
+        actualizarSelector();
+        document.getElementById("selector").value = "-1";
+        cargarParaEditar();}}
+        actualizarSelector();
+  </script>
+</body>
+</html>
